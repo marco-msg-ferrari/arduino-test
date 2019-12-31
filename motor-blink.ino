@@ -1,67 +1,70 @@
 //Inclusione delle librerie
 #include <Arduino.h>
 #include <AccelStepper.h>
-#include <Bounce2.h>
 
 //Definizione costanti relative ai PIN
 const int PIN_X_STEP = 2;
+const int PIN_Y_STEP = 3;
+const int PIN_Z_STEP = 4;
 const int PIN_X_DIR = 5;
-const int PIN_UP_BTN = 8;
-const int PIN_DOWN_BTN = 9;
+const int PIN_Y_DIR = 6;
+const int PIN_Z_DIR = 7;
 
-//Imposta velocità del motore durante la fase di reset della posizione
-const double SPEED_HOMING = 3000.0;
-
-const unsigned long DEBOUNCE_DELAY = 10;
+//Imposta velocità del asseX durante la fase di reset della posizione
+const double MAX_SPEED = 1000.0; // Velocita rotazione
 
 const int jX = 0;
+const int jY = 1;
+const int jZ = 2;
 
-//istanzia il motore
-AccelStepper motore(AccelStepper::DRIVER, PIN_X_STEP, PIN_X_DIR);
-Bounce btnUp = Bounce();  //Scelta risoluzione step
-Bounce btnDown = Bounce();  //Scelta risoluzione step
+AccelStepper asseX(AccelStepper::DRIVER, PIN_X_STEP, PIN_X_DIR);
+AccelStepper asseY(AccelStepper::DRIVER, PIN_Y_STEP, PIN_Y_DIR);
+AccelStepper asseZ(AccelStepper::DRIVER, PIN_Z_STEP, PIN_Z_DIR);
 
-int btnUpState = 0; 
-int btnDownState = 0; 
-long valX, mapX;
+long valX, mapX, valY, mapY, valZ, mapZ;
 
 void setup() {
-    Serial.begin(9600);
-    pinMode(PIN_UP_BTN, INPUT_PULLUP);
-    btnUp.attach(PIN_UP_BTN);
-    btnUp.interval(DEBOUNCE_DELAY);
-    
-    pinMode(PIN_DOWN_BTN, INPUT_PULLUP);
-    btnDown.attach(PIN_DOWN_BTN);
-    btnDown.interval(DEBOUNCE_DELAY);
+    asseX.setMaxSpeed(MAX_SPEED);
+    asseX.setSpeed(MAX_SPEED);
+    asseX.setAcceleration(MAX_SPEED * 3);
 
-    motore.setMaxSpeed(SPEED_HOMING);
-    motore.setSpeed(SPEED_HOMING);
-    motore.setAcceleration(SPEED_HOMING * 3);
+    asseY.setMaxSpeed(MAX_SPEED);
+    asseY.setSpeed(MAX_SPEED);
+    asseY.setAcceleration(MAX_SPEED * 3);
+    
+    asseZ.setMaxSpeed(MAX_SPEED);
+    asseZ.setSpeed(MAX_SPEED);
+    asseZ.setAcceleration(MAX_SPEED * 3);
 }
 
 void loop() {
     valX = analogRead(jX);
+    mapX = map(valX, 0, 1023, MAX_SPEED, -1 * MAX_SPEED);
 
-    mapX = map(valX, 0, 1023, -1 * SPEED_HOMING, SPEED_HOMING);
-  
-    btnUpState = digitalRead(PIN_UP_BTN);
-    btnDownState = digitalRead(PIN_DOWN_BTN);
+    valY = analogRead(jY);
+    mapY = map(valY, 0, 1023, MAX_SPEED, -1 * MAX_SPEED);
 
-    if (btnUpState == HIGH && btnDownState == HIGH) {
-      motore.stop();
-    } else if (btnUpState == LOW && btnDownState == LOW) {
-        if (abs(mapX) > 500) {
-          motore.setSpeed(mapX);
-          motore.run();
-        } else {
-          motore.stop();
-        }
-    } else if (btnUpState == HIGH) {
-      motore.setSpeed(SPEED_HOMING);
-      motore.run();
+    valZ = analogRead(jZ);
+    mapZ = map(valZ, 0, 1023, MAX_SPEED, -1 * MAX_SPEED);
+
+    if (abs(mapX) > 500) {
+      asseX.setSpeed(mapX);
+      asseX.run();
     } else {
-      motore.setSpeed(-1 * SPEED_HOMING);
-      motore.run();
+      asseX.stop();
+    }
+
+    if (abs(mapY) > 500) {
+      asseY.setSpeed(mapY);
+      asseY.run();
+    } else {
+      asseY.stop();
+    }
+
+    if (abs(mapZ) > 500) {
+      asseZ.setSpeed(mapZ);
+      asseZ.run();
+    } else {
+      asseZ.stop();
     }
 }
